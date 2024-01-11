@@ -1,3 +1,3 @@
-# ReadAnno
+# AnnoRead
 
 ## Annotate the aligned reads
