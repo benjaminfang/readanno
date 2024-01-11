@@ -31,15 +31,24 @@ def getargs():
     parser.add_argument("--ref-type", "-R", required=True,
                         choices=["geno", "tran"],
                         help="The reference type, genome of transcriptom")
-    parser.add_argument("--gtf", "-G", required=True,
+    parser.add_argument("--gtf", "-G", default=None,
                         help="annotation file, gtf file.")
-    parser.add_argument("--fasta", "-F", required=True,
+    parser.add_argument("--fasta", "-F", default=None,
                         help="fasta file which roled as reference.")
     parser.add_argument("--out", "-O", default="out",
                         help="name of output file.")
     parser.add_argument("samfile", help="sam file.")
-
     args = parser.parse_args()
+    
+    if args.ref_type == "geno" and (not args.gtf):
+        print("gtf file required for geno ref-type.")
+        parser.print_help()
+        exit()
+    elif args.ref_type == "tran" and (not args.fasta):
+        print("transcriptom fasta is required for tran ref-type.")
+        parser.print_help()
+        exit()
+        
     return args.ref_type, args.gtf, args.fasta, args.out, args.samfile
 
 
