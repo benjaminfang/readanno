@@ -65,7 +65,7 @@ def main():
         count_dics.append(gene_count)
     
     fout = open(out, "w")
-    headline = "\t".join(["geneid"] + [".".join(os.path.basename(ff).split(".")[:-1]) for ff in annoread_files])
+    headline = "\t".join(["geneid"] + ["_".join(".".join(os.path.basename(ff).split(".")[:-1]).split('-')) for ff in annoread_files])
     print(headline, file=fout)
     gene_union = set()
     for dic in count_dics:
