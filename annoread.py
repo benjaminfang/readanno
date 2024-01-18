@@ -41,13 +41,16 @@ def getargs():
     parser.add_argument("--fasta", "-F", required=True,
                         help="fasta file which roled as reference.")
     
+    parser.add_argument("--seq-type", choices={"se", "pe"}, help="sequence type, single end or pair end")
+    
     parser.add_argument("--out", "-O", default="out",
                         help="name of output file.")
     
     parser.add_argument("samfile", help="sam file.")
     args = parser.parse_args()
 
-    return args.ref, args.ref_type, args.gtf, args.fasta, args.out, args.samfile
+    return args.ref, args.ref_type, args.gtf, args.fasta, args.seq_type, \
+        args.out, args.samfile
 
 
 def parse_gtf(gtf_file):
@@ -99,7 +102,7 @@ def parse_fasta_genome_rna(fastafile):
     return seqid_seqinfo_dic
 
 
-def annread_tran_genome_rna(samfile, seqid_seqinfo_dic, out):
+def annread_tran_genome_rna(samfile, seqid_seqinfo_dic, seq_type, out):
     """
     """
     fin = open(samfile, "r")
@@ -109,19 +112,36 @@ def annread_tran_genome_rna(samfile, seqid_seqinfo_dic, out):
             continue
         line = line.rstrip().split("\t")
         readid, flg, refname, pos, mapq, cigar = line[: 6]
-        if flg == "99" or flg == "355":
-            contig_id = "_".join(refname.split("|")[1].split("_")[:2])
-            seqinfo = seqid_seqinfo_dic[refname]
-            transid = seqinfo.get("transcript_id")
-            gbkey = seqinfo.get("gbkey")
-            if not transid:
-                transid = "*"
-            if not gbkey:
-                gbkey = "*"
-            geneid = seqinfo["gene"]
-            
-            print("\t".join([readid, flg, refname, pos, mapq, cigar, contig_id,\
-                            transid, gbkey, geneid]), file=fout)
+        if seq_type == "pe":
+            if flg == "99" or flg == "355":
+                contig_id = "_".join(refname.split("|")[1].split("_")[:2])
+                seqinfo = seqid_seqinfo_dic[refname]
+                transid = seqinfo.get("transcript_id")
+                gbkey = seqinfo.get("gbkey")
+                if not transid:
+                    transid = "*"
+                if not gbkey:
+                    gbkey = "*"
+                geneid = seqinfo["gene"]
+                
+                print("\t".join([readid, flg, refname, pos, mapq, cigar, contig_id,\
+                                transid, gbkey, geneid]), file=fout)
+    
+        elif seq_type == "se":
+            if flg == "0" or flg == "256":
+                contig_id = "_".join(refname.split("|")[1].split("_")[:2])
+                seqinfo = seqid_seqinfo_dic[refname]
+                transid = seqinfo.get("transcript_id")
+                gbkey = seqinfo.get("gbkey")
+                if not transid:
+                    transid = "*"
+                if not gbkey:
+                    gbkey = "*"
+                geneid = seqinfo["gene"]
+                
+                print("\t".join([readid, flg, refname, pos, mapq, cigar, contig_id,\
+                                transid, gbkey, geneid]), file=fout)
+
     fin.close()
     fout.close()
     return
@@ -139,7 +159,7 @@ def main():
     status: 0 for nornal; other for abnormal.
 
     """
-    ref, reftype, gtffile, fastafile, out, samfile = getargs()
+    ref, reftype, gtffile, fastafile, seq_type, out, samfile = getargs()
     if ref == "geno":
         print("reference type not recognized.")
     elif ref == "tran":
@@ -147,7 +167,7 @@ def main():
             pass
         elif reftype == "ncbi-genome-rna":
             seqid_seqinfo_dic = parse_fasta_genome_rna(fastafile)
-            annread_tran_genome_rna(samfile, seqid_seqinfo_dic, out)
+            annread_tran_genome_rna(samfile, seqid_seqinfo_dic, seq_type, out)
         else:
             pass
     else:
