@@ -41,7 +41,8 @@ def getargs():
     parser.add_argument("--fasta", "-F", required=True,
                         help="fasta file which roled as reference.")
     
-    parser.add_argument("--seq-type", choices={"se", "pe"}, help="sequence type, single end or pair end")
+    parser.add_argument("--seq-type", choices={"se", "pe"}, \
+        required=True, help="sequence type, single end or pair end")
     
     parser.add_argument("--out", "-O", default="out",
                         help="name of output file.")
@@ -179,3 +180,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
