@@ -3,9 +3,10 @@
 Read in annread output, and creat count matrix file.
 """
 
-import argparse
+import random
 
-class ANNOTREAD_DATE:
+
+class ANNOREAD_DATE:
     """
     The class to handle reads annotation data generate by annoread.py.
     """
@@ -100,17 +101,251 @@ class ANNOTREAD_DATE:
         return self.__data
 
 
+    def __get_read_id_affiliation(self, set_data):
+        dt_out = {}
+        for key in set_data:
+            for read_id in set_data:
+                if read_id not in dt_out:
+                    dt_out[read_id] = [key]
+                else:
+                    dt_out[read_id].append(key)
+
+        return dt_out
 
 
-def getargs():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("annoread", help="annoread output file", nargs="+")
-    parser.add_argument("--out", "-O", help="output file name", default="out")
-    args = parser.parse_args()
-    return args.annoread, args.out
+    def __assign_reads_drop(self, read_affiliation_dic):
+        """
+        Read has multiple owers would dropped.
+        """
+        read_not_keep_dic = {}
+        for read_id in read_affiliation_dic:
+            if (read_affiliation_dic[read_id]) > 1:
+                for owner in read_affiliation_dic[read_id]:
+                    if owner in read_not_keep_dic:
+                        read_not_keep_dic[owner].append(read_id)
+                    else:
+                        read_not_keep_dic[owner] = [read_id]
+        
+        return read_affiliation_dic
+
+
+    def __assign_reads_equal(self, read_affiliation_dic):
+        """
+        Read has multiple owers will randomly assign to one owers. 
+        """
+        read_not_keep_dic = {}
+        for read_id in read_affiliation_dic:
+            if (read_affiliation_dic[read_id]) > 1:
+                owner_s = read_affiliation_dic[read_id]
+                owner_s.remove(random.choice(owner_s))
+                for owner in owner_s:
+                    if owner in read_not_keep_dic:
+                        read_not_keep_dic[owner].append(read_id)
+                    else:
+                        read_not_keep_dic[owner] = [read_id]
+        return read_not_keep_dic
+
+
+    def __assign_reads_largest(self, read_affiliation_dic, owner_reads_set):
+        read_not_keep_dic = {}
+        for read_id in read_affiliation_dic:
+            if len(read_affiliation_dic[read_id]) > 1:
+                owner_s = read_affiliation_dic[read_id]
+                idx = list(len(owner_s))
+                unique_read_number = []
+                for count in range(len(owner_s)):
+                    pop_idx = idx.pop(0)
+                    set_a = owner_reads_set[pop_idx]
+                    set_left = set()
+                    for ii in idx:
+                        set_left |= owner_reads_set[ii]
+                    unique_read_number.append((len(set_a - set_left), pop_idx))
+                    idx.append(pop_idx)
+                unique_read_number.sort()
+                largest_set_idx = unique_read_number[-1][-1]
+                owner_s.remove(owner_s[largest_set_idx])
+                for owner in owner_s:
+                    if owner in read_not_keep_dic:
+                        read_not_keep_dic[owner].append(read_id)
+                    else:
+                        read_not_keep_dic[owner].append(read_id)
+        return read_not_keep_dic
+
+
+    def __assign_reads_proportion(self, read_affiliation_dic, owner_reads_set):
+        read_not_keep_dic = {}
+        for read_id in read_affiliation_dic:
+            if len(read_affiliation_dic[read_id]) > 1:
+                owner_s = read_affiliation_dic[read_id]
+                idx = list(len(owner_s))
+                unique_read_number = []
+                for count in range(len(owner_s)):
+                    pop_idx = idx.pop(0)
+                    set_a = owner_reads_set[pop_idx]
+                    set_left = set()
+                    for ii in idx:
+                        set_left |= owner_reads_set[ii]
+                    unique_read_number.append((len(set_a - set_left), pop_idx))
+                    idx.append(pop_idx)
+                #choose a owner with probability be positive to its uniqure_read_number.
+                weights = [0]  * len(owner_s)
+                for set_size in unique_read_number:
+                    weights[set_size[1]] = set_size[0]
+                owner_s.remove(random.choices(owner_s, weights=weights, k=1))
+                for owner in owner_s:
+                    if owner in read_not_keep_dic:
+                        read_not_keep_dic[owner].append(read_id)
+                    else:
+                        read_not_keep_dic[owner].append(read_id)
+        return read_not_keep_dic
+
+
+    def __assign_reads(self, read_affiliation_dic, owner_reads_set, method):
+        read_not_keep_dic = {}
+
+        if method == "assign_drop":
+            read_not_keep_dic = self.__assign_reads_drop(read_affiliation_dic)
+        elif method == "assign_equal":
+            read_not_keep_dic = self.__assign_reads_equal(read_affiliation_dic)
+        elif method == "assign_largest":
+            read_not_keep_dic = self.__assign_reads_largest(read_affiliation_dic, owner_reads_set)
+        elif method == "assign_proportion":
+            read_not_keep_dic = self.__assign_reads_proportion(read_affiliation_dic, owner_reads_set)
+        else:
+            print(f"{method} is not known.")
+
+        return read_not_keep_dic
+
+
+    def filter_reads_accross_gene_name(self, method="assign_drop"):
+        """
+        Filter reads which belong to multiple genes.
+
+        Two strategies used to do this,
+        1) drop any reads which belong to multiple genes.
+        2) keep reads to one gene randomly.
+
+        Parameters
+        ---------------
+        method: the method applied to filter reads, drop is the default.
+            drop, drop the reads.
+            equal_assign, keep reads to one gene.
+            largest_assign,
+            proportion_assign,
+
+        Retures
+        ---------------
+
+        """
+        data = self.__data
+        owner_reads_set = {}
+        for gene_name in data:
+            owner_reads_set[gene_name] = set()
+            for gene_id in data[gene_name]:
+                for transcript_id in data[gene_name][gene_id]["transcripts"]:
+                    for read in data[gene_name][gene_id]["transcripts"][transcript_id]["reads"]:
+                        read_id = read[0]
+                        owner_reads_set[gene_name].add(read_id)
+
+        read_affiliation_dic = self.__get_read_id_affiliation(owner_reads_set)
+        read_not_keep_dic = {}
+        read_not_keep_dic = self.__assign_reads(read_affiliation_dic, owner_reads_set, method)
+        
+        for gene_name in data:
+            not_keep_read = read_not_keep_dic.get(gene_name)
+            if not_keep_read:
+                for gene_id in data[gene_name]:
+                    for transcript_id in data[gene_name][gene_id]["transcripts"]:
+                        reads = data[gene_name][gene_id]["transcripts"][transcript_id]["reads"]
+                        reads_filered = []
+                        for read in reads:
+                            if read[0] not in not_keep_read:
+                                reads_filered.append(read)
+
+                        data[gene_name][gene_id]["transcripts"][transcript_id]["reads"] = reads_filered
+
+
+    def filter_reads_accross_gene_id(self, method="assign_drop"):
+        """
+        Parameters
+        -------------
+        methods: drop, random, largest_assign, proportion_assign
+
+        Retures
+        -------------
+
+        """
+        data = self.__data
+        for gene_name in data:
+            owner_reads_set = {}
+            for gene_id in data[gene_name]:
+                owner_reads_set[gene_id] = set()
+                for transcript_id in data[gene_name][gene_id]["transcripts"]:
+                    for read in data[gene_name][gene_id]["transcripts"][transcript_id]:
+                        owner_reads_set[gene_id].add(read[0])
+            
+            read_affiliation_dic = self.__get_read_id_affiliation(owner_reads_set)
+            read_not_keep_dic = self.__assign_reads(read_affiliation_dic, owner_reads_set, method)
+
+            for gene_id in data[gene_name]:
+                not_keep = read_not_keep_dic.get(gene_id)
+                if not_keep:
+                    for transcript_id in data[gene_name][gene_id]["transcript"]:
+                        reads = data[gene_name][gene_id]["transcript"][transcript_id]["reads"]
+                        reads_filtered = []
+                        for read in reads:
+                            if read[0] not in not_keep:
+                                reads_filtered.append(read)
+                        data[gene_name][gene_id]["transcripts"][transcript_id]["reads"] = reads_filtered
+
+
+    def filter_reads_accross_transcript_id(self, method="assign_drop"):
+        data = self.__data
+
+        for gene_name in data:
+            for gene_id in data[gene_name]:
+                owner_reads_set = {}
+                for transcript_id in data[gene_name][gene_id]["transcripts"]:
+                    owner_reads_set[transcript_id] = set()
+                    for read in data[gene_name][gene_id]["transcripts"][transcript_id]["reads"]:
+                        owner_reads_set[transcript_id].add(read[0])
+
+                read_affiliation_dic = self.__get_read_id_affiliation(owner_reads_set)
+                read_not_keep_dic = self.__assign_reads(read_affiliation_dic, owner_reads_set, method)
+
+                for transcript_id in data[gene_name][gene_id]["transcripts"]:
+                    not_keep = read_not_keep_dic.get(transcript_id)
+                    if not_keep:
+                        reads = data[gene_name][gene_id]["transcripts"][transcript_id]["reads"]
+                        reads_filtered = []
+                        for read in reads:
+                            if read[0] not in not_keep:
+                                reads_filtered.append(read)
+                        data[gene_name][gene_id]["transcripts"][transcript_id]["reads"] = reads_filtered
+
+
+    def filter_reads_one_transcript(self):
+        data = self.__data
+        for gene_name in data:
+            for gene_id in data[gene_name]:
+                for transcript_id in data[gene_name][gene_id]["transcripts"]:
+                    read_id_s = []
+                    read_filtered = []
+                    for read in data[gene_name][gene_id]["transcripts"][transcript_id]["reads"]:
+                        if read[0] not in read_id_s:
+                            read_filtered.append(read)
+                    data[gene_name][gene_id]["transcripts"][transcript_id]["reads"] = read_filtered
 
 
 if __name__ == "__main__":
+    import argparse
+    def getargs():
+        parser = argparse.ArgumentParser()
+        parser.add_argument("annoread", help="annoread output file", nargs="+")
+        parser.add_argument("--out", "-O", help="output file name", default="out")
+        args = parser.parse_args()
+        return args.annoread, args.out
+
     anno_files, out = getargs()
 
     for annofile in anno_files:
