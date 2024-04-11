@@ -4,6 +4,8 @@ Read in annread output, and creat count matrix file.
 """
 
 import random
+import numpy as np
+import os
 
 
 class ANNOREAD_DATE:
@@ -337,6 +339,44 @@ class ANNOREAD_DATE:
                     data[gene_name][gene_id]["transcripts"][transcript_id]["reads"] = read_filtered
 
 
+
+def count_reads(annoread_dt):
+    gene_count_data = {}
+    
+    annoread_dt.filter_reads_accross_gene_name(method="assign_drop")
+    data = annoread_dt.get_data()
+    for gene_name in data:
+        gene_count_data[gene_name] = set()
+        for gene_id in data[gene_name]:
+            for transcipt_id in data[gene_name][gene_id]["transcripts"]:
+                for read in data[gene_name][gene_id]["transcripts"][transcipt_id]["reads"]:
+                    gene_count_data[gene_name].add(read[0])
+
+    for gene_name in gene_count_data:
+        gene_count_data[gene_name] = len(gene_count_data[gene_name])
+    return gene_count_data
+
+
+def output_count_mtx(count_data, anno_files, out):
+    all_gene_names = set()
+    for count_data_ele in count_data:
+        all_gene_names |= set(count_data_ele.keys())
+    all_gene_names = list(all_gene_names)
+    all_gene_names.sort()
+    mtx = []
+    for count_data_ele in count_data:
+        one_file_dt = []
+        for gene in all_gene_names:
+            one_file_dt.append(count_data_ele.get(gene, 0))
+        mtx.append(one_file_dt)
+    mtx = np.asarray(mtx).T
+    fout = open(out + '.tsv', "w")
+    print("\t".join(["geneid"] + [os.path.basename(ff) for ff in anno_files]), file=fout)
+    for row in mtx:
+        print("\t".join([str(ele) for ele in row]), file=fout)
+    fout.close()
+
+
 if __name__ == "__main__":
     import argparse
     def getargs():
@@ -347,6 +387,7 @@ if __name__ == "__main__":
         return args.annoread, args.out
 
     anno_files, out = getargs()
-
+    count_data = []
     for annofile in anno_files:
-        annodata = ANNOTREAD_DATE(annofile)
+        annodata = ANNOREAD_DATE(annofile)
+        count_data.append(count_reads(annodata))
