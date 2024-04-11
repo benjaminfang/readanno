@@ -262,12 +262,12 @@ def output_result(annoed_read, gtf_info, out):
                     start_codon_rel = change_coordinate_relative_to_gene_range(gene_id_range[0], start_codon, gene_id_ori)
                     start_codon_str = ";".join([",".join([str(e) for e in ele]) for ele in start_codon_rel])
                 else:
-                    start_codon = "*"
+                    start_codon_str = "*"
                 if stop_codon:
                     stop_codon_rel = change_coordinate_relative_to_gene_range(gene_id_range[0], stop_codon, gene_id_ori)
                     stop_codon_str = ";".join([",".join([str(e) for e in ele]) for ele in stop_codon_rel])
                 else:
-                    stop_codon = "*"
+                    stop_codon_str = "*"
                 print('\t'.join(["$" + transcript_id, trans_gbkey, trans_range_str, start_codon_str, stop_codon_str]), file=fout)
                 for read in annoed_read[gene_name][gene_id][transcript_id]:
                     read_id, read_pos, read_len = read
