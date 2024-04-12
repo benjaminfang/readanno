@@ -8,7 +8,7 @@ import numpy as np
 import os
 
 
-class ANNOREAD_DATE:
+class ANNOREAD_DATA:
     """
     The class to handle reads annotation data generate by annoread.py.
     """
@@ -106,7 +106,7 @@ class ANNOREAD_DATE:
     def __get_read_id_affiliation(self, set_data):
         dt_out = {}
         for key in set_data:
-            for read_id in set_data:
+            for read_id in set_data[key]:
                 if read_id not in dt_out:
                     dt_out[read_id] = [key]
                 else:
@@ -121,14 +121,14 @@ class ANNOREAD_DATE:
         """
         read_not_keep_dic = {}
         for read_id in read_affiliation_dic:
-            if (read_affiliation_dic[read_id]) > 1:
+            if len(read_affiliation_dic[read_id]) > 1:
                 for owner in read_affiliation_dic[read_id]:
                     if owner in read_not_keep_dic:
                         read_not_keep_dic[owner].append(read_id)
                     else:
                         read_not_keep_dic[owner] = [read_id]
         
-        return read_affiliation_dic
+        return read_not_keep_dic
 
 
     def __assign_reads_equal(self, read_affiliation_dic):
@@ -137,7 +137,7 @@ class ANNOREAD_DATE:
         """
         read_not_keep_dic = {}
         for read_id in read_affiliation_dic:
-            if (read_affiliation_dic[read_id]) > 1:
+            if len(read_affiliation_dic[read_id]) > 1:
                 owner_s = read_affiliation_dic[read_id]
                 owner_s.remove(random.choice(owner_s))
                 for owner in owner_s:
@@ -248,11 +248,8 @@ class ANNOREAD_DATE:
                     for read in data[gene_name][gene_id]["transcripts"][transcript_id]["reads"]:
                         read_id = read[0]
                         owner_reads_set[gene_name].add(read_id)
-
         read_affiliation_dic = self.__get_read_id_affiliation(owner_reads_set)
-        read_not_keep_dic = {}
         read_not_keep_dic = self.__assign_reads(read_affiliation_dic, owner_reads_set, method)
-        
         for gene_name in data:
             not_keep_read = read_not_keep_dic.get(gene_name)
             if not_keep_read:
@@ -339,11 +336,10 @@ class ANNOREAD_DATE:
                     data[gene_name][gene_id]["transcripts"][transcript_id]["reads"] = read_filtered
 
 
-
 def count_reads(annoread_dt):
     gene_count_data = {}
-    
     annoread_dt.filter_reads_accross_gene_name(method="assign_drop")
+    print("    reads filtered by assign_drop method")
     data = annoread_dt.get_data()
     for gene_name in data:
         gene_count_data[gene_name] = set()
@@ -360,7 +356,11 @@ def count_reads(annoread_dt):
 def output_count_mtx(count_data, anno_files, out):
     all_gene_names = set()
     for count_data_ele in count_data:
-        all_gene_names |= set(count_data_ele.keys())
+        set_gene = set()
+        for key in count_data_ele:
+            if count_data_ele[key] > 0:
+                set_gene.add(key)
+        all_gene_names |= set_gene
     all_gene_names = list(all_gene_names)
     all_gene_names.sort()
     mtx = []
@@ -372,8 +372,8 @@ def output_count_mtx(count_data, anno_files, out):
     mtx = np.asarray(mtx).T
     fout = open(out + '.tsv', "w")
     print("\t".join(["geneid"] + [os.path.basename(ff) for ff in anno_files]), file=fout)
-    for row in mtx:
-        print("\t".join([str(ele) for ele in row]), file=fout)
+    for idx, row in enumerate(mtx):
+        print("\t".join([all_gene_names[idx]] + [str(ele) for ele in row]), file=fout)
     fout.close()
 
 
@@ -381,13 +381,17 @@ if __name__ == "__main__":
     import argparse
     def getargs():
         parser = argparse.ArgumentParser()
-        parser.add_argument("annoread", help="annoread output file", nargs="+")
+        parser.add_argument("anno_files", help="annoread output file", nargs="+")
         parser.add_argument("--out", "-O", help="output file name", default="out")
         args = parser.parse_args()
-        return args.annoread, args.out
+        return args.anno_files, args.out
 
     anno_files, out = getargs()
     count_data = []
     for annofile in anno_files:
-        annodata = ANNOREAD_DATE(annofile)
+        print("reading...", annofile)
+        annodata = ANNOREAD_DATA(annofile)
+        print("    counting...")
         count_data.append(count_reads(annodata))
+    print("writing result...")
+    output_count_mtx(count_data, anno_files, out)
