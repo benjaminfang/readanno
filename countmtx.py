@@ -126,7 +126,7 @@ class ANNOREAD_DATA:
             left_set = set()
             for jj in owner_idx:
                 left_set |= owner_reads_set[owner_s[jj]]
-            uniqu_ele_num.append(len(set_pop - left_set), idx_pop)
+            uniqu_ele_num.append([len(set_pop - left_set), idx_pop])
             owner_idx.append(idx_pop)
 
         dt_out = {}
@@ -191,18 +191,23 @@ class ANNOREAD_DATA:
                         set_left = set()
                         for ii in idx:
                             set_left |= owner_reads_set[owner_s[ii]]
-                        unique_read_number.append((len(set_a - set_left), pop_idx))
+                        unique_read_number.append([len(set_a - set_left), pop_idx])
                         idx.append(pop_idx)
                     unique_read_number.sort()
                     largest_set_idx = unique_read_number[-1][-1]
                     owner_s.remove(owner_s[largest_set_idx])
-                    owner_left = owner_s
-                
-                for owner in owner_left:
-                    if owner in read_not_keep_dic:
-                        read_not_keep_dic[owner].append(read_id)
-                    else:
-                        read_not_keep_dic[owner] = [read_id]
+                    for owner in owner_s:
+                        if owner in read_not_keep_dic:
+                            read_not_keep_dic[owner].append(read_id)
+                        else:
+                            read_not_keep_dic[owner] = [read_id]
+                else:
+                    for owner in owner_left:
+                        if owner in read_not_keep_dic:
+                            read_not_keep_dic[owner].append(read_id)
+                        else:
+                            read_not_keep_dic[owner] = [read_id]                
+        
         return read_not_keep_dic
 
 
@@ -212,6 +217,8 @@ class ANNOREAD_DATA:
         all_owner_num = len(owner_reads_set)
         all_owner = list(set_unique_num.keys())
         weights_all = [set_unique_num[ele] for ele in all_owner]
+        if 0 in weights_all:
+            weights_all = [ele + 1 for ele in weights_all]
         
         for read_id in read_affiliation_dic:
             if len(read_affiliation_dic[read_id]) > 1:
@@ -226,7 +233,7 @@ class ANNOREAD_DATA:
                         set_left = set()
                         for ii in idx:
                             set_left |= owner_reads_set[owner_s[ii]]
-                        unique_read_number.append((len(set_a - set_left), pop_idx))
+                        unique_read_number.append([len(set_a - set_left), pop_idx])
                         idx.append(pop_idx)
                     #choose a owner with probability be positive to its uniqure_read_number.
                     weights = [0]  * owner_s_len
