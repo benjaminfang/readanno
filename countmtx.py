@@ -27,14 +27,14 @@ class ANNOREAD_DATA:
                 {gene_id: 
                     {
                         'ref_id': string,
-                        'gene_range': (left, right),
+                        'gene_range': [left, right],
                         'ori': string,
                         'transcipts': {
                             transcipt_id: {
                                 'gbkey': string,
-                                'trans_range': list,
-                                'start_codon': list,
-                                'stop_codon': list,
+                                'transcript_range': list->[[p1, p2], ...],
+                                'start_codon': list/None,
+                                'stop_codon': list/None,
                                 'reads': [
                                     [read_id, read_pos, read_len, alig_pos],
                                     ...
@@ -69,21 +69,18 @@ class ANNOREAD_DATA:
             elif line[0] == "$":
                 line = line[1:].split('\t')
                 transcipt_id, gbkey, trans_range, start_codon, stop_codon = line
-                trans_range = [ele.split(",") for ele in trans_range.split(";")]
-                trans_range = [(int(ele[0]), int(ele[1])) for ele in trans_range]
+                trans_range = [[int(nn) for nn in ele.split(",")] for ele in trans_range.split(";")]
                 if start_codon != "*":
-                    start_codon = [ele.split(",") for ele in start_codon.split(";")]
-                    start_codon = [(int(ele[0]), int(ele[1])) for ele in start_codon]
+                    start_codon = [[int(nn) for nn in ele.split(",")] for ele in start_codon.split(";")]
                 else:
                     start_codon = None
                 if stop_codon != "*":
-                    stop_codon = [ele.split(",") for ele in stop_codon.split(";")]
-                    stop_codon = [(int(ele[0]), int(ele[1])) for ele in stop_codon]
+                    stop_codon = [[int(nn) for nn in ele.split(",")] for ele in stop_codon.split(";")]
                 else:
                     stop_codon = None
                 data[gene_name][gene_id]["transcripts"][transcipt_id] = {}
                 data[gene_name][gene_id]["transcripts"][transcipt_id]["gbkey"] = gbkey
-                data[gene_name][gene_id]["transcripts"][transcipt_id]["trans_range"] = trans_range
+                data[gene_name][gene_id]["transcripts"][transcipt_id]["transcript_range"] = trans_range
                 data[gene_name][gene_id]["transcripts"][transcipt_id]["start_codon"] = start_codon
                 data[gene_name][gene_id]["transcripts"][transcipt_id]["stop_codon"] = stop_codon
                 data[gene_name][gene_id]["transcripts"][transcipt_id]["reads"] = []
@@ -92,8 +89,7 @@ class ANNOREAD_DATA:
                 read_id, read_pos, read_len, align_pos = line
                 read_pos = int(read_pos)
                 read_len = int(read_len)
-                align_pos = [ele.split(",") for ele in align_pos.split(";")]
-                align_pos = [(int(ele[0]), int(ele[1])) for ele in align_pos]
+                align_pos = [[int(nn) for nn in ele.split(",")] for ele in align_pos.split(";")]
                 data[gene_name][gene_id]["transcripts"][transcipt_id]["reads"].append([read_id, read_pos, read_len, align_pos])
         fin.close()
         self.__data = data
@@ -153,14 +149,15 @@ class ANNOREAD_DATA:
         for read_id in read_affiliation_dic:
             if len(read_affiliation_dic[read_id]) > 1:
                 owner_s = read_affiliation_dic[read_id]
-                idx = list(len(owner_s))
+                owner_s_len = len(owner_s)
+                idx = list(range(owner_s_len))
                 unique_read_number = []
-                for count in range(len(owner_s)):
+                for count in range(owner_s_len):
                     pop_idx = idx.pop(0)
-                    set_a = owner_reads_set[pop_idx]
+                    set_a = owner_reads_set[owner_s[pop_idx]]
                     set_left = set()
                     for ii in idx:
-                        set_left |= owner_reads_set[ii]
+                        set_left |= owner_reads_set[owner_s[ii]]
                     unique_read_number.append((len(set_a - set_left), pop_idx))
                     idx.append(pop_idx)
                 unique_read_number.sort()
@@ -170,7 +167,7 @@ class ANNOREAD_DATA:
                     if owner in read_not_keep_dic:
                         read_not_keep_dic[owner].append(read_id)
                     else:
-                        read_not_keep_dic[owner].append(read_id)
+                        read_not_keep_dic[owner] = [read_id]
         return read_not_keep_dic
 
 
@@ -179,26 +176,29 @@ class ANNOREAD_DATA:
         for read_id in read_affiliation_dic:
             if len(read_affiliation_dic[read_id]) > 1:
                 owner_s = read_affiliation_dic[read_id]
-                idx = list(len(owner_s))
+                owner_s_len = len(owner_s)
+                idx = list(range(owner_s_len))
                 unique_read_number = []
-                for count in range(len(owner_s)):
+                for count in range(owner_s_len):
                     pop_idx = idx.pop(0)
-                    set_a = owner_reads_set[pop_idx]
+                    set_a = owner_reads_set[owner_s[pop_idx]]
                     set_left = set()
                     for ii in idx:
-                        set_left |= owner_reads_set[ii]
+                        set_left |= owner_reads_set[owner_s[ii]]
                     unique_read_number.append((len(set_a - set_left), pop_idx))
                     idx.append(pop_idx)
                 #choose a owner with probability be positive to its uniqure_read_number.
-                weights = [0]  * len(owner_s)
+                weights = [0]  * owner_s_len
                 for set_size in unique_read_number:
                     weights[set_size[1]] = set_size[0]
-                owner_s.remove(random.choices(owner_s, weights=weights, k=1))
+                if 0 in weights:
+                    weights = [ele + 1 for ele in weights]
+                owner_s.remove(random.choices(owner_s, weights=weights, k=1)[0])
                 for owner in owner_s:
                     if owner in read_not_keep_dic:
                         read_not_keep_dic[owner].append(read_id)
                     else:
-                        read_not_keep_dic[owner].append(read_id)
+                        read_not_keep_dic[owner] = [read_id]
         return read_not_keep_dic
 
 
@@ -219,7 +219,7 @@ class ANNOREAD_DATA:
         return read_not_keep_dic
 
 
-    def filter_reads_accross_gene_name(self, method="assign_drop"):
+    def unique_reads_accross_gene_name(self, method="assign_drop"):
         """
         Filter reads which belong to multiple genes.
 
@@ -264,7 +264,7 @@ class ANNOREAD_DATA:
                         data[gene_name][gene_id]["transcripts"][transcript_id]["reads"] = reads_filered
 
 
-    def filter_reads_accross_gene_id(self, method="assign_drop"):
+    def unique_reads_accross_gene_id(self, method="assign_drop"):
         """
         Parameters
         -------------
@@ -280,17 +280,21 @@ class ANNOREAD_DATA:
             for gene_id in data[gene_name]:
                 owner_reads_set[gene_id] = set()
                 for transcript_id in data[gene_name][gene_id]["transcripts"]:
-                    for read in data[gene_name][gene_id]["transcripts"][transcript_id]:
+                    for read in data[gene_name][gene_id]["transcripts"][transcript_id]["reads"]:
                         owner_reads_set[gene_id].add(read[0])
-            
+ 
+            assert len(owner_reads_set) != 0
+            if len(owner_reads_set) == 1:
+                continue
+
             read_affiliation_dic = self.__get_read_id_affiliation(owner_reads_set)
             read_not_keep_dic = self.__assign_reads(read_affiliation_dic, owner_reads_set, method)
 
             for gene_id in data[gene_name]:
                 not_keep = read_not_keep_dic.get(gene_id)
                 if not_keep:
-                    for transcript_id in data[gene_name][gene_id]["transcript"]:
-                        reads = data[gene_name][gene_id]["transcript"][transcript_id]["reads"]
+                    for transcript_id in data[gene_name][gene_id]["transcripts"]:
+                        reads = data[gene_name][gene_id]["transcripts"][transcript_id]["reads"]
                         reads_filtered = []
                         for read in reads:
                             if read[0] not in not_keep:
@@ -298,9 +302,8 @@ class ANNOREAD_DATA:
                         data[gene_name][gene_id]["transcripts"][transcript_id]["reads"] = reads_filtered
 
 
-    def filter_reads_accross_transcript_id(self, method="assign_drop"):
+    def unique_reads_accross_transcript_id(self, method="assign_drop"):
         data = self.__data
-
         for gene_name in data:
             for gene_id in data[gene_name]:
                 owner_reads_set = {}
@@ -308,6 +311,10 @@ class ANNOREAD_DATA:
                     owner_reads_set[transcript_id] = set()
                     for read in data[gene_name][gene_id]["transcripts"][transcript_id]["reads"]:
                         owner_reads_set[transcript_id].add(read[0])
+
+                assert len(owner_reads_set) != 0
+                if len(owner_reads_set) == 1:
+                    continue
 
                 read_affiliation_dic = self.__get_read_id_affiliation(owner_reads_set)
                 read_not_keep_dic = self.__assign_reads(read_affiliation_dic, owner_reads_set, method)
@@ -323,7 +330,7 @@ class ANNOREAD_DATA:
                         data[gene_name][gene_id]["transcripts"][transcript_id]["reads"] = reads_filtered
 
 
-    def filter_reads_one_transcript(self):
+    def unique_reads_one_transcript(self):
         data = self.__data
         for gene_name in data:
             for gene_id in data[gene_name]:
@@ -332,13 +339,14 @@ class ANNOREAD_DATA:
                     read_filtered = []
                     for read in data[gene_name][gene_id]["transcripts"][transcript_id]["reads"]:
                         if read[0] not in read_id_s:
+                            read_id_s.append(read[0])
                             read_filtered.append(read)
                     data[gene_name][gene_id]["transcripts"][transcript_id]["reads"] = read_filtered
 
 
 def count_reads(annoread_dt):
     gene_count_data = {}
-    annoread_dt.filter_reads_accross_gene_name(method="assign_drop")
+    annoread_dt.assign_reads_accross_gene_name(method="assign_drop")
     print("    reads filtered by assign_drop method")
     data = annoread_dt.get_data()
     for gene_name in data:
