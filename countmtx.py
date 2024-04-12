@@ -111,6 +111,30 @@ class ANNOREAD_DATA:
         return dt_out
 
 
+    def __set_unique_ele_number(self, owner_reads_set):
+        """
+        Some times most reads is common in all owers. Calculate the unique_element
+        firstly, to avoid repease calculation.
+        """
+        owner_s = list(owner_reads_set.keys())
+        owner_s_len = len(owner_s)
+        owner_idx = list(range(owner_s_len))
+        uniqu_ele_num = []
+        for ii in range(owner_s_len):
+            idx_pop = owner_idx.pop(0)
+            set_pop = owner_reads_set[owner_s[idx_pop]]
+            left_set = set()
+            for jj in owner_idx:
+                left_set |= owner_reads_set[owner_s[jj]]
+            uniqu_ele_num.append(len(set_pop - left_set), idx_pop)
+            owner_idx.append(idx_pop)
+
+        dt_out = {}
+        for ele_num in uniqu_ele_num:
+            dt_out[owner_s[ele_num[1]]] = ele_num[0]
+        return dt_out
+
+
     def __assign_reads_drop(self, read_affiliation_dic):
         """
         Read has multiple owers would dropped.
@@ -146,24 +170,35 @@ class ANNOREAD_DATA:
 
     def __assign_reads_largest(self, read_affiliation_dic, owner_reads_set):
         read_not_keep_dic = {}
+        set_unique_num = self.__set_unique_ele_number(owner_reads_set)
+        all_owner_num = len(owner_reads_set)
+        larget_owner = [[set_unique_num[ele], ele] for ele in set_unique_num]
+        larget_owner.sort()
+        larget_owner = larget_owner[-1][1]
+        owner_left = list(set_unique_num.keys())
+        owner_left.remove(larget_owner)
+
         for read_id in read_affiliation_dic:
             if len(read_affiliation_dic[read_id]) > 1:
-                owner_s = read_affiliation_dic[read_id]
-                owner_s_len = len(owner_s)
-                idx = list(range(owner_s_len))
-                unique_read_number = []
-                for count in range(owner_s_len):
-                    pop_idx = idx.pop(0)
-                    set_a = owner_reads_set[owner_s[pop_idx]]
-                    set_left = set()
-                    for ii in idx:
-                        set_left |= owner_reads_set[owner_s[ii]]
-                    unique_read_number.append((len(set_a - set_left), pop_idx))
-                    idx.append(pop_idx)
-                unique_read_number.sort()
-                largest_set_idx = unique_read_number[-1][-1]
-                owner_s.remove(owner_s[largest_set_idx])
-                for owner in owner_s:
+                if len(read_affiliation_dic[read_id]) != all_owner_num:
+                    owner_s = read_affiliation_dic[read_id]
+                    owner_s_len = len(owner_s)
+                    idx = list(range(owner_s_len))
+                    unique_read_number = []
+                    for count in range(owner_s_len):
+                        pop_idx = idx.pop(0)
+                        set_a = owner_reads_set[owner_s[pop_idx]]
+                        set_left = set()
+                        for ii in idx:
+                            set_left |= owner_reads_set[owner_s[ii]]
+                        unique_read_number.append((len(set_a - set_left), pop_idx))
+                        idx.append(pop_idx)
+                    unique_read_number.sort()
+                    largest_set_idx = unique_read_number[-1][-1]
+                    owner_s.remove(owner_s[largest_set_idx])
+                    owner_left = owner_s
+                
+                for owner in owner_left:
                     if owner in read_not_keep_dic:
                         read_not_keep_dic[owner].append(read_id)
                     else:
