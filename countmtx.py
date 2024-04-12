@@ -208,27 +208,36 @@ class ANNOREAD_DATA:
 
     def __assign_reads_proportion(self, read_affiliation_dic, owner_reads_set):
         read_not_keep_dic = {}
+        set_unique_num = self.__set_unique_ele_number(owner_reads_set)
+        all_owner_num = len(owner_reads_set)
+        all_owner = list(set_unique_num.keys())
+        weights_all = [set_unique_num[ele] for ele in all_owner]
+        
         for read_id in read_affiliation_dic:
             if len(read_affiliation_dic[read_id]) > 1:
                 owner_s = read_affiliation_dic[read_id]
-                owner_s_len = len(owner_s)
-                idx = list(range(owner_s_len))
-                unique_read_number = []
-                for count in range(owner_s_len):
-                    pop_idx = idx.pop(0)
-                    set_a = owner_reads_set[owner_s[pop_idx]]
-                    set_left = set()
-                    for ii in idx:
-                        set_left |= owner_reads_set[owner_s[ii]]
-                    unique_read_number.append((len(set_a - set_left), pop_idx))
-                    idx.append(pop_idx)
-                #choose a owner with probability be positive to its uniqure_read_number.
-                weights = [0]  * owner_s_len
-                for set_size in unique_read_number:
-                    weights[set_size[1]] = set_size[0]
-                if 0 in weights:
-                    weights = [ele + 1 for ele in weights]
-                owner_s.remove(random.choices(owner_s, weights=weights, k=1)[0])
+                if len(owner_s) != all_owner_num:
+                    owner_s_len = len(owner_s)
+                    idx = list(range(owner_s_len))
+                    unique_read_number = []
+                    for count in range(owner_s_len):
+                        pop_idx = idx.pop(0)
+                        set_a = owner_reads_set[owner_s[pop_idx]]
+                        set_left = set()
+                        for ii in idx:
+                            set_left |= owner_reads_set[owner_s[ii]]
+                        unique_read_number.append((len(set_a - set_left), pop_idx))
+                        idx.append(pop_idx)
+                    #choose a owner with probability be positive to its uniqure_read_number.
+                    weights = [0]  * owner_s_len
+                    for set_size in unique_read_number:
+                        weights[set_size[1]] = set_size[0]
+                    if 0 in weights:
+                        weights = [ele + 1 for ele in weights]
+                    owner_s.remove(random.choices(owner_s, weights=weights, k=1)[0])
+                else:
+                    owner_s.remove(random.choices(all_owner, weights=weights_all, k=1)[0])
+
                 for owner in owner_s:
                     if owner in read_not_keep_dic:
                         read_not_keep_dic[owner].append(read_id)
