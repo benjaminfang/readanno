@@ -160,24 +160,25 @@ class ANNOREAD_DATA:
         return read_not_keep_dic
 
 
-    def __assign_reads_largest(self, read_affiliation_dic, owner_reads_set):
+    def __assign_reads_largest(self, read_affiliation_dic, owner_reads_set, pre_cal_weight=False):
         read_not_keep_dic = {}
-        set_unique_num = self.__set_unique_ele_number(owner_reads_set)
-        all_owner_num = len(owner_reads_set)
-        larget_owner = [[set_unique_num[ele], ele] for ele in set_unique_num]
-        larget_owner.sort()
-        larget_owner = larget_owner[-1][1]
-        owner_left = list(set_unique_num.keys())
-        owner_left.remove(larget_owner)
+        if pre_cal_weight:
+            set_unique_num = self.__set_unique_ele_number(owner_reads_set)
+            all_owner_num = len(owner_reads_set)
+            larget_owner = [[set_unique_num[ele], ele] for ele in set_unique_num]
+            larget_owner.sort()
+            larget_owner = larget_owner[-1][1]
+        else:
+            all_owner_num = 0
 
         for read_id in read_affiliation_dic:
-            if len(read_affiliation_dic[read_id]) > 1:
-                if len(read_affiliation_dic[read_id]) != all_owner_num:
-                    owner_s = read_affiliation_dic[read_id]
-                    owner_s_len = len(owner_s)
-                    idx = list(range(owner_s_len))
+            owner_s = read_affiliation_dic[read_id]
+            owner_s_num = len(owner_s)
+            if owner_s_num > 1:
+                if owner_s_num != all_owner_num:
+                    idx = list(range(owner_s_num))
                     unique_read_number = []
-                    for count in range(owner_s_len):
+                    for count in range(owner_s_num):
                         pop_idx = idx.pop(0)
                         set_a = owner_reads_set[owner_s[pop_idx]]
                         set_left = set()
@@ -194,7 +195,8 @@ class ANNOREAD_DATA:
                         else:
                             read_not_keep_dic[owner] = [read_id]
                 else:
-                    for owner in owner_left:
+                    owner_s.remove(larget_owner)
+                    for owner in owner_s:
                         if owner in read_not_keep_dic:
                             read_not_keep_dic[owner].append(read_id)
                         else:
@@ -203,23 +205,26 @@ class ANNOREAD_DATA:
         return read_not_keep_dic
 
 
-    def __assign_reads_proportion(self, read_affiliation_dic, owner_reads_set):
+    def __assign_reads_proportion(self, read_affiliation_dic, owner_reads_set, pre_cal_weight=False):
         read_not_keep_dic = {}
-        set_unique_num = self.__set_unique_ele_number(owner_reads_set)
-        all_owner_num = len(owner_reads_set)
-        all_owner = list(set_unique_num.keys())
-        weights_all = [set_unique_num[ele] for ele in all_owner]
-        if 0 in weights_all:
-            weights_all = [ele + 1 for ele in weights_all]
+        if pre_cal_weight:
+            set_unique_num = self.__set_unique_ele_number(owner_reads_set)
+            all_owner_num = len(owner_reads_set)
+            all_owner = list(set_unique_num.keys())
+            weights_all = [set_unique_num[ele] for ele in all_owner]
+            if 0 in weights_all:
+                weights_all = [ele + 1 for ele in weights_all]
+        else:
+            all_owner_num = 0
         
         for read_id in read_affiliation_dic:
-            if len(read_affiliation_dic[read_id]) > 1:
-                owner_s = read_affiliation_dic[read_id]
-                if len(owner_s) != all_owner_num:
-                    owner_s_len = len(owner_s)
-                    idx = list(range(owner_s_len))
+            owner_s = read_affiliation_dic[read_id]
+            owner_s_num = len(owner_s)
+            if owner_s_num > 1:
+                if owner_s_num != all_owner_num:
+                    idx = list(range(owner_s_num))
                     unique_read_number = []
-                    for count in range(owner_s_len):
+                    for count in range(owner_s_num):
                         pop_idx = idx.pop(0)
                         set_a = owner_reads_set[owner_s[pop_idx]]
                         set_left = set()
@@ -228,7 +233,7 @@ class ANNOREAD_DATA:
                         unique_read_number.append([len(set_a - set_left), pop_idx])
                         idx.append(pop_idx)
                     #choose a owner with probability be positive to its uniqure_read_number.
-                    weights = [0]  * owner_s_len
+                    weights = [0]  * owner_s_num
                     for set_size in unique_read_number:
                         weights[set_size[1]] = set_size[0]
                     if 0 in weights:
@@ -242,10 +247,11 @@ class ANNOREAD_DATA:
                         read_not_keep_dic[owner].append(read_id)
                     else:
                         read_not_keep_dic[owner] = [read_id]
+
         return read_not_keep_dic
 
 
-    def __assign_reads(self, read_affiliation_dic, owner_reads_set, method):
+    def __assign_reads(self, read_affiliation_dic, owner_reads_set, method, pre_cal_weight=False):
         read_not_keep_dic = {}
         if method == "keep":
             pass
@@ -254,9 +260,9 @@ class ANNOREAD_DATA:
         elif method == "equal":
             read_not_keep_dic = self.__assign_reads_equal(read_affiliation_dic)
         elif method == "largest":
-            read_not_keep_dic = self.__assign_reads_largest(read_affiliation_dic, owner_reads_set)
+            read_not_keep_dic = self.__assign_reads_largest(read_affiliation_dic, owner_reads_set, pre_cal_weight)
         elif method == "proportion":
-            read_not_keep_dic = self.__assign_reads_proportion(read_affiliation_dic, owner_reads_set)
+            read_not_keep_dic = self.__assign_reads_proportion(read_affiliation_dic, owner_reads_set, pre_cal_weight)
         else:
             print(f"{method} is not known.")
 
@@ -292,7 +298,7 @@ class ANNOREAD_DATA:
                         read_id = read[0]
                         owner_reads_set[gene_name].add(read_id)
         read_affiliation_dic = self.__get_read_id_affiliation(owner_reads_set)
-        read_not_keep_dic = self.__assign_reads(read_affiliation_dic, owner_reads_set, method)
+        read_not_keep_dic = self.__assign_reads(read_affiliation_dic, owner_reads_set, method, pre_cal_weight=False)
         for gene_name in data:
             not_keep_read = read_not_keep_dic.get(gene_name)
             if not_keep_read:
@@ -331,7 +337,7 @@ class ANNOREAD_DATA:
                 continue
 
             read_affiliation_dic = self.__get_read_id_affiliation(owner_reads_set)
-            read_not_keep_dic = self.__assign_reads(read_affiliation_dic, owner_reads_set, method)
+            read_not_keep_dic = self.__assign_reads(read_affiliation_dic, owner_reads_set, method, pre_cal_weight=True)
 
             for gene_id in data[gene_name]:
                 not_keep = read_not_keep_dic.get(gene_id)
@@ -360,7 +366,7 @@ class ANNOREAD_DATA:
                     continue
 
                 read_affiliation_dic = self.__get_read_id_affiliation(owner_reads_set)
-                read_not_keep_dic = self.__assign_reads(read_affiliation_dic, owner_reads_set, method)
+                read_not_keep_dic = self.__assign_reads(read_affiliation_dic, owner_reads_set, method, pre_cal_weight=True)
 
                 for transcript_id in data[gene_name][gene_id]["transcripts"]:
                     not_keep = read_not_keep_dic.get(transcript_id)
