@@ -1,4 +1,16 @@
 #!/usr/bin/env python3
+"""
+Annotated read associated features based on mapping data.
+
+Output read position file, ".rdpos", with format:
+'
+>gene_name
+&gene_id seqid gene_range orientation
+$transcript_id gbkey transcript_blocks_relative_to_gene start_codon/* stop_codon/*
+read_id read_pos_in_trans read_length read_pos_align_with_the_gene
+'
+"""
+
 import argparse
 from biobrary.bioparse import FASTA, GTF
 import re
