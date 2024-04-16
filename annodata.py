@@ -263,7 +263,7 @@ class ANNOREAD_DATA:
         return read_not_keep_dic
 
 
-    def assign_reads_accross_gene_name(self, method="drop"):
+    def assign_reads_across_gene_name(self, method="drop"):
         """
         Filter reads which belong to multiple genes.
 
@@ -281,7 +281,6 @@ class ANNOREAD_DATA:
 
         Retures
         ---------------
-
         """
         data = self.__data
         owner_reads_set = {}
@@ -308,7 +307,7 @@ class ANNOREAD_DATA:
                         data[gene_name][gene_id]["transcripts"][transcript_id]["reads"] = reads_filered
 
 
-    def assign_reads_accross_gene_id(self, method="drop"):
+    def assign_reads_across_gene_id(self, method="drop"):
         """
         Parameters
         -------------
@@ -346,7 +345,7 @@ class ANNOREAD_DATA:
                         data[gene_name][gene_id]["transcripts"][transcript_id]["reads"] = reads_filtered
 
 
-    def assign_reads_accross_transcript_id(self, method="drop"):
+    def assign_reads_across_transcript_id(self, method="drop"):
         data = self.__data
         for gene_name in data:
             for gene_id in data[gene_name]:
