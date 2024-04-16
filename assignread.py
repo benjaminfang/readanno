@@ -24,7 +24,7 @@ from annodata import ANNOREAD_DATA
 
 def getargs():
     parser = argparse.ArgumentParser()
-    parser.add_argument("anno_files", help="annoread file", nargs="+")
+    parser.add_argument("anno_file", help="annoread file")
     parser.add_argument("--out", "-O", help="output file name", default="out")
     parser.add_argument("--gene_name", 
         choices={"keep", "drop", "equal", "proportion", "largest"},
@@ -76,9 +76,9 @@ def output_result(anno_data, out):
 
 
 def main():
-    anno_files, out, gene_name_lev, gene_id_lev, transcript_id_lev, uniq_transcript \
+    anno_file, out, gene_name_lev, gene_id_lev, transcript_id_lev, uniq_transcript \
         = getargs()
-    anno_data = ANNOREAD_DATA(anno_files)
+    anno_data = ANNOREAD_DATA(anno_file)
     if gene_name_lev:
         anno_data.assign_reads_accross_gene_name(method=gene_name_lev)
     if gene_id_lev:
