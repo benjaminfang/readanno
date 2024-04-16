@@ -115,9 +115,9 @@ def get_fasta_seq_info(fasta_file):
     return dt_out
 
 
-def correct_fasta_info(fasta_info, gtf_info, transcript_id_gene_id, transcript_id_gene):
+def correct_fasta_info(fasta_info, gtf_info, transcript_id_gene_id, transcript_id_gene, out):
     dt_out = {}
-    
+    flog = open(out + "-fasta-info-correctiong.log", "w")
     for seq_id in fasta_info:
         refseq_fasta, gene_name_fasta, transcript_id_fasta, gbkey_fasta, \
             left_fasta, right_fasta, ori_fasta = fasta_info[seq_id]
@@ -134,12 +134,13 @@ def correct_fasta_info(fasta_info, gtf_info, transcript_id_gene_id, transcript_i
                     
                     dt_out[seq_id] = [gene_name_gtf, gene_id_gtf, transcript_id_fasta, gbkey_fasta]
                 else:
-                    print(f"unknown seq (transcript_id): {refseq_fasta} {gene_name_gtf} {gene_id_gtf} {transcript_id_fasta} {gbkey_fasta}")
+                    print(f"unknown seq (transcript_id): {refseq_fasta} {gene_name_gtf} {gene_id_gtf} {transcript_id_fasta} {gbkey_fasta}", file=flog)
             else:
-                print(f"unknown seq (gene_id): {refseq_fasta} {gene_name_gtf} {gene_id_gtf} {transcript_id_fasta} {gbkey_fasta}")
+                print(f"unknown seq (gene_id): {refseq_fasta} {gene_name_gtf} {gene_id_gtf} {transcript_id_fasta} {gbkey_fasta}", file=flog)
         else:
-            print(f"{transcript_id_fasta} not found in transcript_id_gene_id dic")
-    
+            print(f"{transcript_id_fasta} not found in transcript_id_gene_id dic", file=flog)
+    print(len(dt_out), "FASTA sequence is found in GTF file", file=flog)
+    flog.close()
     return dt_out
 
 
@@ -148,7 +149,7 @@ def struc_sam_file(samfile, read_type):
     for line in fin:
         if line[0] != "@":
             break
-    
+
     dt = []
     line = line.rstrip().split('\t')
     readid, flg, refname, pos, read = line[0], line[1], line[2], line[3], line[9]
@@ -174,8 +175,9 @@ def struc_sam_file(samfile, read_type):
     return dt
 
 
-def annotate_read(samdata, fasta_info):
+def annotate_read(samdata, fasta_info, out):
     dt_anno = {}
+    flog = open(out + "-annotation.log",  "w")
     anno_count = 0
     for line in samdata:
         readid, seq_id, pos, readlen = line
@@ -194,7 +196,8 @@ def annotate_read(samdata, fasta_info):
                     dt_anno[gene_name_gtf][gene_id_gtf] = {transcript_id_fasta: [[readid, pos, readlen]]}
             else:
                 dt_anno[gene_name_gtf] = {gene_id_gtf: {transcript_id_fasta: [[readid, pos, readlen]]}}
-    print(f"{anno_count} are annotated.")
+    print(f"{anno_count} reads were annotated.", file=flog)
+    flog.close()
     return dt_anno
 
 
@@ -211,7 +214,7 @@ def change_coordinate_relative_to_gene_range(gene_range, trans_range, ori):
     return range_rel
 
 
-def align_read_to_transcipt(trans_rel, read_pos, read_len):
+def align_read_to_transcipt(trans_rel, read_pos, read_len, flog):
     trans_block_len = [ele[1] - ele[0] + 1 for ele in trans_rel]
     trans_block_len_cum = [0]
     read_tail_len = int(read_len * .1)
@@ -232,13 +235,13 @@ def align_read_to_transcipt(trans_rel, read_pos, read_len):
             break
     
     if not read_start_in:
-        print("read left out")
+        print("read left out", file=flog)
         return None
     if not read_stop_in:
         if read_stop - trans_block_len_cum[-1] < read_tail_len:
             read_stop = trans_block_len_cum[-1]
         else:
-            print("read right out", trans_rel, read_pos, read_len)
+            print("read right out", trans_rel, read_pos, read_len, file=flog)
             return None
     assert idx_start <= idx_stop
 
@@ -257,6 +260,7 @@ def align_read_to_transcipt(trans_rel, read_pos, read_len):
 
 def output_result(annoed_read, gtf_info, out):
     fout = open(out + ".rdpos", "w")
+    flog = open(out + "-reads-align.log", "w")
     for gene_name in annoed_read:
         print(f">{gene_name}", file=fout)
         gene_name_info = gtf_info[gene_name]
@@ -283,21 +287,32 @@ def output_result(annoed_read, gtf_info, out):
                 print('\t'.join(["$" + transcript_id, trans_gbkey, trans_range_str, start_codon_str, stop_codon_str]), file=fout)
                 for read in annoed_read[gene_name][gene_id][transcript_id]:
                     read_id, read_pos, read_len = read
-                    read_align = align_read_to_transcipt(trans_range_rel, read_pos, read_len)
+                    read_align = align_read_to_transcipt(trans_range_rel, read_pos, read_len, flog)
                     if read_align:
                         read_align_str = ";".join([",".join([str(e) for e in ele]) for ele in read_align])
                         print("\t".join([read_id, str(read_pos), str(read_len), read_align_str]), file=fout)
-    
     fout.close()
+    flog.close()
 
 
 if __name__ == "__main__":
     samfile, out, fasta_file, gtf_file, read_type = getargs()
-    gtf_info, transcript_id_gene_id, transcript_id_gene = get_gtf_trans_cds_info(gtf_file)
+    print("\nStart...", samfile)
 
+    print("Reading annotation information...")
+    gtf_info, transcript_id_gene_id, transcript_id_gene = \
+        get_gtf_trans_cds_info(gtf_file)
     fasta_info = get_fasta_seq_info(fasta_file)
-    fasta_info = correct_fasta_info(fasta_info, gtf_info, transcript_id_gene_id, transcript_id_gene)
-    print(len(fasta_info), "FASTA sequence is found in GTF file")
+    fasta_info = correct_fasta_info(fasta_info, gtf_info, transcript_id_gene_id,
+                                    transcript_id_gene, out)
+    
+    print("Reading sam file...")
     sam_dt = struc_sam_file(samfile, read_type)
-    annoed_read = annotate_read(sam_dt, fasta_info)
+    
+    print("Annotating...")
+    annoed_read = annotate_read(sam_dt, fasta_info, out)
+    
+    print("Outputing result...")
     output_result(annoed_read, gtf_info, out)
+
+    print("Done.")
