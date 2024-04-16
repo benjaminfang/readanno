@@ -247,14 +247,15 @@ class ANNOREAD_DATA:
 
     def __assign_reads(self, read_affiliation_dic, owner_reads_set, method):
         read_not_keep_dic = {}
-
-        if method == "assign_drop":
+        if method == "keep":
+            pass
+        elif method == "drop":
             read_not_keep_dic = self.__assign_reads_drop(read_affiliation_dic)
-        elif method == "assign_equal":
+        elif method == "equal":
             read_not_keep_dic = self.__assign_reads_equal(read_affiliation_dic)
-        elif method == "assign_largest":
+        elif method == "largest":
             read_not_keep_dic = self.__assign_reads_largest(read_affiliation_dic, owner_reads_set)
-        elif method == "assign_proportion":
+        elif method == "proportion":
             read_not_keep_dic = self.__assign_reads_proportion(read_affiliation_dic, owner_reads_set)
         else:
             print(f"{method} is not known.")
@@ -262,7 +263,7 @@ class ANNOREAD_DATA:
         return read_not_keep_dic
 
 
-    def assign_reads_accross_gene_name(self, method="assign_drop"):
+    def assign_reads_accross_gene_name(self, method="drop"):
         """
         Filter reads which belong to multiple genes.
 
@@ -307,7 +308,7 @@ class ANNOREAD_DATA:
                         data[gene_name][gene_id]["transcripts"][transcript_id]["reads"] = reads_filered
 
 
-    def assign_reads_accross_gene_id(self, method="assign_drop"):
+    def assign_reads_accross_gene_id(self, method="drop"):
         """
         Parameters
         -------------
@@ -345,7 +346,7 @@ class ANNOREAD_DATA:
                         data[gene_name][gene_id]["transcripts"][transcript_id]["reads"] = reads_filtered
 
 
-    def assign_reads_accross_transcript_id(self, method="assign_drop"):
+    def assign_reads_accross_transcript_id(self, method="drop"):
         data = self.__data
         for gene_name in data:
             for gene_id in data[gene_name]:

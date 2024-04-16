@@ -30,17 +30,20 @@ def getargs():
         choices={"keep", "drop", "equal", "proportion", "largest"},
         help="the method applied to assign read in gene_name level",
         default=None)
-    parser.add_argument("--gene_id", 
+    parser.add_argument("--gene_id",
+        choices={"keep", "drop", "equal", "proportion", "largest"},
         help="the method applied to assign read in gene_id level",
         default=None)
-    parser.add_argument("--transcript_id", 
+    parser.add_argument("--transcript_id",
+        choices={"keep", "drop", "equal", "proportion", "largest"},
         help="the method applied to assign read in transcript_id level",
         default=None)
-    parser.add_argument("--unique_transcript_read", 
+    parser.add_argument("--unique_transcript_read",
         help="flag, indicate whether unique read mapped to same transcripts in multiple position",
         action="store_true")
     args = parser.parse_args()
-    return args.anno_files, args.out, args.gene_name, args.gene_id, args.transcript_id, args.unique_transcript_read
+    return (args.anno_file, args.out, args.gene_name, args.gene_id,
+            args.transcript_id, args.unique_transcript_read)
 
 
 def output_result(anno_data, out):
@@ -78,15 +81,22 @@ def output_result(anno_data, out):
 def main():
     anno_file, out, gene_name_lev, gene_id_lev, transcript_id_lev, uniq_transcript \
         = getargs()
+    print(uniq_transcript)
+
     anno_data = ANNOREAD_DATA(anno_file)
+    
     if gene_name_lev:
         anno_data.assign_reads_accross_gene_name(method=gene_name_lev)
+    
     if gene_id_lev:
         anno_data.assign_reads_accross_gene_id(method=gene_id_lev)
+    
     if transcript_id_lev:
         anno_data.assign_reads_accross_transcript_id(method=transcript_id_lev)
+    
     if uniq_transcript:
         anno_data.unique_reads_one_transcript()
+    
     output_result(anno_data, out)
 
 
