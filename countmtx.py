@@ -50,15 +50,17 @@ def counting(annoread_dt, count_level="gene_name"):
         for gene_name in data:
             for gene_id in data[gene_name]:
                 key = gene_name + "|" + gene_id
-                for transcript_id in data[gene_name][gene_id]["transcipts"]:
+                count_res[key] = set()
+                for transcript_id in data[gene_name][gene_id]["transcripts"]:
                     for read in data[gene_name][gene_id]["transcripts"][transcript_id]["reads"]:
                         count_res[key].add(read[0])
     
     elif count_level == "transcript_id":
         for gene_name in data:
             for gene_id in data[gene_name]:
-                for transcript_id in data[gene_name][gene_id]["transcipts"]:
+                for transcript_id in data[gene_name][gene_id]["transcripts"]:
                     key = gene_name + "|" + gene_id + "|" + transcript_id
+                    count_res[key] = set()
                     for read in data[gene_name][gene_id]["transcripts"][transcript_id]["reads"]:
                         count_res[key].add(read[0])
     else:
@@ -107,7 +109,7 @@ def main():
         count_res_all.append(count_res)
     
     print("writing result...")
-    output_count_mtx(count_res, out)
+    output_count_mtx(count_res_all, anno_file_s, out)
     print("Done.")
 
 
