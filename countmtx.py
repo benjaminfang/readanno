@@ -91,7 +91,7 @@ def output_count_mtx(count_data, anno_files, out):
     mtx = np.asarray(mtx).T
     
     fout = open(out + '.tsv', "w")
-    print("\t".join(["geneid"] + [os.path.basename(ff) for ff in anno_files]), file=fout)
+    print("\t".join(["feature_id"] + [os.path.basename(ff) for ff in anno_files]), file=fout)
     for idx, row in enumerate(mtx):
         print("\t".join([all_id_s[idx]] + [str(ele) for ele in row]), file=fout)
     fout.close()
