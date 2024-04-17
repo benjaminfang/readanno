@@ -47,7 +47,7 @@ def getargs():
 
 
 def output_result(anno_data, out):
-    fout = open(out, "w")
+    fout = open(out + ".rdpos", "w")
     data = anno_data.get_data()
     for gene_name in data:
         print(">" + gene_name, file=fout)
@@ -61,11 +61,17 @@ def output_result(anno_data, out):
             for transcript_id in transcripts:
                 gbkey = transcripts[transcript_id]["gbkey"]
                 transcript_range = transcripts[transcript_id]["transcript_range"]
-                transcript_range = ";".join([",".join([ele[0], ele[1]]) for ele in transcript_range])
+                transcript_range = ";".join([",".join([str(ele[0]), str(ele[1])]) for ele in transcript_range])
                 start_codon = transcripts[transcript_id]["start_codon"]
-                start_codon = ";".join([",".join([ele[0], ele[1]]) for ele in start_codon])
+                if start_codon:
+                    start_codon = ";".join([",".join([str(ele[0]), str(ele[1])]) for ele in start_codon])
+                else:
+                    start_codon = "*"
                 stop_codon = transcripts[transcript_id]["stop_codon"]
-                stop_codon = ";".join([",".join([ele[0], ele[1]]) for ele in stop_codon])
+                if stop_codon:
+                    stop_codon = ";".join([",".join([str(ele[0]), str(ele[1])]) for ele in stop_codon])
+                else:
+                    stop_codon = "*"
                 print("\t".join(["$" + transcript_id, gbkey, transcript_range,
                                 start_codon, stop_codon]),
                                 file=fout)
@@ -102,8 +108,10 @@ def main():
         print("Uniquing reads mapped to multiple postion of a transcript...")
         anno_data.unique_reads_one_transcript()
     
+    print("outputing result...")
     output_result(anno_data, out)
 
+    print("Done.")
 
 if __name__ == "__main__":
     main()
