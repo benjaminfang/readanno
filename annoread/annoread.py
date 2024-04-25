@@ -294,8 +294,7 @@ def output_result(annoed_read, gtf_info, out):
     fout.close()
     flog.close()
 
-
-if __name__ == "__main__":
+def main():
     samfile, out, fasta_file, gtf_file, read_type = getargs()
     print("\nStart...", samfile)
 
@@ -316,3 +315,7 @@ if __name__ == "__main__":
     output_result(annoed_read, gtf_info, out)
 
     print("Done.")
+
+
+if __name__ == "__main__":
+    main()

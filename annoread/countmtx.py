@@ -21,7 +21,7 @@ id_2, number_3, number_4
 import numpy as np
 import os
 import argparse
-from annodata import ANNOREAD_DATA
+from .annodata import ANNOREAD_DATA
 
 
 def getargs():

@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+
+[project]
+name = "annoread"
+version = "0.1.4"
+dependencies = [
+  "biobrary==0.1.4",
+]
+requires-python = ">=3.11"
+authors = [
+  {name = "Hailing Fang", email = "benjaminfang.ol@outlook.com"},
+]
+description = "annotate read from mapping data, and assign the multiple mapped reads, and count"
+readme = "README.md"
+license = {file = "MIT License"}
+keywords = ["read annotation", "read assignment", "read count"]
+classifiers = [
+  "Programming Language :: Python :: 3"
+]
+
+[project.urls]
+Homepage = "https://github.com/benjaminfang/annoread"
+
+[project.scripts]
+annoread = "annoread.annoread:main"
+assignread = "annoread.assignread:main"
+countmtx = "annoread.countmtx:main"
+

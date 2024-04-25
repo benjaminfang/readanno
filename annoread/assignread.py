@@ -19,7 +19,7 @@ The choice or method to assign read when it mapped to multiple features.
         read.
 """
 import argparse
-from annodata import ANNOREAD_DATA
+from .annodata import ANNOREAD_DATA
 
 
 def getargs():
