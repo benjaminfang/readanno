@@ -2,16 +2,24 @@
 
 Annoread is a utility to annotation the read fot the gene it belong to.
 
-## Utilities
+## Requirements
 
-annoread.py:
+- biobrary
+
+## installation
+
+`pip install annoread`
+
+## Usage
+
+### annoread:
 
     Annotated the reads based on read mapping data.
 
-assignread.py
+### assignread
 
     Assign reads which mapped to multiple features.
 
-countmtx.py
+### countmtx
 
     Count the read number of features.
