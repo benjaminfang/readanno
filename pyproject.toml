@@ -13,7 +13,7 @@ authors = [
 ]
 description = "annotate read from mapping data, and assign the multiple mapped reads, and count"
 readme = "README.md"
-license = {file = "MIT License"}
+license = {file = "LICENSE"}
 keywords = ["read annotation", "read assignment", "read count"]
 classifiers = [
   "Programming Language :: Python :: 3"
