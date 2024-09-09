@@ -12,9 +12,9 @@ read_id read_pos_in_trans read_length read_pos_align_with_the_gene
 """
 
 import argparse
-from biobrary.bioparse import FASTA, GTF
+import biobrary.bioparse as bp
 import re
-
+import os
 
 def getargs():
     parser = argparse.ArgumentParser()
@@ -31,58 +31,69 @@ def getargs():
 
 
 def get_gtf_trans_cds_info(gtf_file):
+    """
+    dt_out: {gene_name: {gene_id: [refname, gene_range, ori, 
+    {trans_id: [exon_range, gbkey, cds_range, start_codon_range, stop_codon_range],
+    ...}], ...}, ...}
+    """
     dt_out = {}
     transcript_id_gene_id = {}
     transcript_id_gene = {} #maybe useful in future
-    gtf = GTF(gtf_file)
+    gtf = bp.parse_gtf(gtf_file)
     for gene in gtf:
         gene_id = gene.get_gene_id()
         gene_name = gene.get_attr("gene")
         ori = gene.get_ori()
         gene_range = gene.get_range()
-        refname = gene.get_seqname()
+        refname = gene.get_seq_name()
         if gene_name not in dt_out:
             dt_out[gene_name] = {gene_id: [refname, gene_range, ori, {}]}
         else:
             dt_out[gene_name][gene_id] = [refname, gene_range, ori, {}]
-        trans_ids = gene.get_transcript_ids()
+        trans_ids = gene.get_transcript_id_s()
         for trans_id in trans_ids:
             trans = gene.get_transcript(trans_id)
-            protein_ids = trans.get_protein_ids()
-            #It is possible that one transcript code multiple protein.
-            if len(protein_ids) <= 1:
-                transcript_id_gene_id[trans_id] = gene_id
-                transcript_id_gene[trans_id] = gene_name
-                dt_out[gene_name][gene_id][-1][trans_id] = [trans.get_range(), trans.get_attr("gbkey")]
-                if len(protein_ids) == 1:
-                    prot = trans.get_protein(protein_ids[0])
-                    dt_out[gene_name][gene_id][-1][trans_id].append(prot.get_range())
-                    start_stop = prot.get_start_stop_ids()
-                    if "start_codon" in start_stop:
-                        dt_out[gene_name][gene_id][-1][trans_id].append(
-                            prot.get_start_stop("start_codon").get_range())
-                    else:
-                        dt_out[gene_name][gene_id][-1][trans_id].append(None)
-                    if "stop_codon" in start_stop:
-                        dt_out[gene_name][gene_id][-1][trans_id].append(
-                            prot.get_start_stop("stop_codon").get_range())
-                    else:
-                        dt_out[gene_name][gene_id][-1][trans_id].append(None)
-                else:
-                    dt_out[gene_name][gene_id][-1][trans_id] += [None, None, None]
+            exon = trans.get_exon()
+            cds = trans.get_CDS()
+            start_codon = trans.get_start_codon()
+            stop_codon = trans.get_stop_codon()
+
+            transcript_id_gene_id[trans_id] = gene_id
+            transcript_id_gene[trans_id] = gene_name
+            if exon:
+                dt_out[gene_name][gene_id][-1][trans_id] = [exon.get_range(), exon.get_attr("gbkey")]
             else:
-                print(f"{trans_id} coding multiple proteins.")
+                dt_out[gene_name][gene_id][-1][trans_id] = [None, None]
+
+            if cds:
+                dt_out[gene_name][gene_id][-1][trans_id].append(cds.get_range())
+            else:
+                dt_out[gene_name][gene_id][-1][trans_id].append(None)
+
+            if start_codon:
+                dt_out[gene_name][gene_id][-1][trans_id].append(start_codon.get_range())
+            else:
+                dt_out[gene_name][gene_id][-1][trans_id].append(None)
+            if stop_codon:
+                dt_out[gene_name][gene_id][-1][trans_id].append(stop_codon.get_range())
+            else:
+                dt_out[gene_name][gene_id][-1][trans_id].append(None)
 
     return dt_out, transcript_id_gene_id, transcript_id_gene
 
 
 def get_fasta_seq_info(fasta_file):
-    fasta = FASTA(fasta_file)
-    seq_info = fasta.seqid_info
+    """
+    dt_out: {seq_id: [refseq, gene, transcript_id, gbkey, left, right, ori], ...}
+    """
+    fasta = bp.parse_fasta(fasta_file)
+    seq_id_s = fasta.get_seq_id_s()
     dt_out = {}
     retmp = re.compile(r'\[(.+?)=(.+?)\]')
-    for seq_id in seq_info:
-        info = {ele[0]: ele[1] for ele in retmp.findall(seq_info[seq_id])}
+    for seq_id in seq_id_s:
+        seq_entry = fasta.get_seq_entry(seq_id)
+        info = seq_entry.get_seq_info()
+        info = {ele[0]: ele[1] for ele in retmp.findall(info)}
         refseq = "_".join(seq_id.split("|")[1].split("_")[:2])
         gene = info.get("gene")
         transcript_id = info.get("transcript_id")
@@ -205,6 +216,7 @@ def change_coordinate_relative_to_gene_range(gene_range, trans_range, ori):
     range_rel = []
     gene_left = gene_range[0]
     gene_right = gene_range[1]
+    trans_range.sort(key=lambda x:x[0])
     if ori == "+":
         for block in trans_range:
             range_rel.append((block[0] - gene_left + 1, block[1] - gene_left + 1))
@@ -296,7 +308,7 @@ def output_result(annoed_read, gtf_info, out):
 
 def main():
     samfile, out, fasta_file, gtf_file, read_type = getargs()
-    print("\nStart...", samfile)
+    print("\nStart...", os.path.basename(samfile))
 
     print("Reading annotation information...")
     gtf_info, transcript_id_gene_id, transcript_id_gene = \
