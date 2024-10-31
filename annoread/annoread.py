@@ -271,7 +271,7 @@ def align_read_to_transcipt(trans_rel, read_pos, read_len, flog):
 
 
 def output_result(annoed_read, gtf_info, out):
-    fout = open(out + ".rdpos", "w")
+    fout = open(out + ".rda", "w")
     flog = open(out + "-reads-align.log", "w")
     for gene_name in annoed_read:
         print(f">{gene_name}", file=fout)
