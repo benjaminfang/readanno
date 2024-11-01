@@ -47,7 +47,7 @@ def getargs():
 
 
 def output_result(anno_data, out):
-    fout = open(out + ".rdpos", "w")
+    fout = open(out + ".rda", "w")
     data = anno_data.get_data()
     for gene_name in data:
         print(">" + gene_name, file=fout)
