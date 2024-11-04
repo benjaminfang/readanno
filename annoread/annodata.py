@@ -294,9 +294,7 @@ class ANNOREAD_DATA:
             owner_reads_set[gene_name] = set()
             for gene_id in data[gene_name]:
                 for transcript_id in data[gene_name][gene_id]["transcripts"]:
-                    for read in data[gene_name][gene_id]["transcripts"][transcript_id]["reads"]:
-                        read_id = read[0]
-                        owner_reads_set[gene_name].add(read_id)
+                    owner_reads_set[gene_name] |= set([read[0] for read in data[gene_name][gene_id]["transcripts"][transcript_id]["reads"]])
         read_affiliation_dic = self.__get_read_id_affiliation(owner_reads_set)
         read_not_keep_dic = self.__assign_reads(read_affiliation_dic, owner_reads_set, method, pre_cal_weight=False)
         for gene_name in data:
@@ -329,8 +327,7 @@ class ANNOREAD_DATA:
             for gene_id in data[gene_name]:
                 owner_reads_set[gene_id] = set()
                 for transcript_id in data[gene_name][gene_id]["transcripts"]:
-                    for read in data[gene_name][gene_id]["transcripts"][transcript_id]["reads"]:
-                        owner_reads_set[gene_id].add(read[0])
+                    owner_reads_set[gene_id] |= set([read[0] for read in data[gene_name][gene_id]["transcripts"][transcript_id]["reads"]])
  
             assert len(owner_reads_set) != 0
             if len(owner_reads_set) == 1:
@@ -357,9 +354,7 @@ class ANNOREAD_DATA:
             for gene_id in data[gene_name]:
                 owner_reads_set = {}
                 for transcript_id in data[gene_name][gene_id]["transcripts"]:
-                    owner_reads_set[transcript_id] = set()
-                    for read in data[gene_name][gene_id]["transcripts"][transcript_id]["reads"]:
-                        owner_reads_set[transcript_id].add(read[0])
+                    owner_reads_set[transcript_id] = set([read[0] for read in data[gene_name][gene_id]["transcripts"][transcript_id]["reads"]])
 
                 assert len(owner_reads_set) != 0
                 if len(owner_reads_set) == 1:
