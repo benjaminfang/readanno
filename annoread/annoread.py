@@ -61,7 +61,7 @@ def get_gtf_trans_cds_info(gtf_file):
             transcript_id_gene_id[trans_id] = gene_id
             transcript_id_gene[trans_id] = gene_name
             if exon:
-                dt_out[gene_name][gene_id][-1][trans_id] = [exon.get_range(), exon.get_attr("gbkey")]
+                dt_out[gene_name][gene_id][-1][trans_id] = [exon.get_range(), exon.get_attr("gbkey") if exon.get_attr("gbkey") else trans.get_attr('gbkey')]
             else:
                 dt_out[gene_name][gene_id][-1][trans_id] = [None, None]
 
