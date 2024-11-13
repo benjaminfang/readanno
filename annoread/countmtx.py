@@ -85,8 +85,8 @@ def output_count_mtx(count_data, anno_files, out):
     mtx = []
     for count_data_ele in count_data:
         one_file_dt = []
-        for id in all_id_s:
-            one_file_dt.append(count_data_ele.get(id, 0))
+        for gid in all_id_s:
+            one_file_dt.append(count_data_ele.get(gid, 0))
         mtx.append(one_file_dt)
     mtx = np.asarray(mtx).T
     

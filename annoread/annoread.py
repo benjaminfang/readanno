@@ -92,7 +92,7 @@ def get_fasta_seq_info(fasta_file):
     retmp = re.compile(r'\[(.+?)=(.+?)\]')
     for seq_id in seq_id_s:
         seq_entry = fasta.get_seq_entry(seq_id)
-        info = seq_entry.get_seq_info()
+        info = seq_entry.get_head_line()
         info = {ele[0]: ele[1] for ele in retmp.findall(info)}
         refseq = "_".join(seq_id.split("|")[1].split("_")[:2])
         gene = info.get("gene")
